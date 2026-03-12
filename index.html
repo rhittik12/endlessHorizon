@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Endless Horizon Drive</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div class="vignette"></div>
+
+    <div class="hud">
+      <h1>Endless Horizon</h1>
+      <p>W/S throttle &amp; brake, A/D steer, Shift boost, R reset</p>
+      <p id="status">Loading...</p>
+      <label class="quality">
+        Quality
+        <select id="quality-select" aria-label="Quality preset">
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="touch-controls" aria-label="Touch controls">
+      <button data-key="throttle">Accel</button>
+      <button data-key="left">Left</button>
+      <button data-key="brake">Brake</button>
+      <button data-key="right">Right</button>
+      <button data-key="boost">Boost</button>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "endlesshorizon",
+  "version": "1.0.0",
+  "description": "A browser prototype inspired by the feel of slowroads-style relaxed driving.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.183.2"
+  },
+  "devDependencies": {
+    "vite": "^7.3.1"
+  }
+}
