@@ -1,7 +1,7 @@
 :root {
   color-scheme: dark;
-  font-family: "Segoe UI", "Trebuchet MS", sans-serif;
-  --ink: rgba(244, 247, 251, 0.92);
+  font-family: "Bahnschrift", "Trebuchet MS", sans-serif;
+  --ink: rgba(245, 248, 251, 0.9);
 }
 
 * {
@@ -28,57 +28,55 @@ body {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0) 58%, rgba(0, 0, 0, 0.3) 100%),
-    linear-gradient(to top, rgba(6, 13, 18, 0.28), rgba(0, 0, 0, 0));
+    radial-gradient(circle at 50% 46%, rgba(255, 255, 255, 0) 54%, rgba(0, 0, 0, 0.34) 100%),
+    linear-gradient(to top, rgba(6, 14, 18, 0.22), rgba(0, 0, 0, 0));
 }
 
 .hud {
   position: fixed;
-  left: 1.15rem;
-  bottom: 1.05rem;
-  background: linear-gradient(120deg, rgba(9, 17, 22, 0.22), rgba(16, 23, 30, 0.46));
+  left: 1rem;
+  bottom: 1rem;
   color: var(--ink);
-  padding: 0.7rem 0.95rem;
-  border-radius: 0.74rem;
+  padding: 0.62rem 0.8rem;
+  border-radius: 0.62rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(6px);
-  max-width: min(34rem, 94vw);
+  background: rgba(10, 18, 24, 0.32);
+  backdrop-filter: blur(5px);
+  max-width: min(33rem, 94vw);
 }
 
 .hud h1 {
-  margin: 0 0 0.32rem;
-  font-size: 0.87rem;
+  margin: 0 0 0.25rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.14em;
   font-weight: 600;
-  opacity: 0.92;
+  opacity: 0.88;
 }
 
 .hud p {
-  margin: 0.2rem 0;
-  font-size: 0.8rem;
-  letter-spacing: 0.03em;
-}
-
-.hud p:first-of-type {
-  opacity: 0.82;
+  margin: 0.14rem 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  opacity: 0.86;
 }
 
 .quality {
-  margin-top: 0.3rem;
+  margin-top: 0.28rem;
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  font-size: 0.78rem;
+  gap: 0.4rem;
+  font-size: 0.72rem;
   opacity: 0.9;
 }
 
 .quality select {
-  background: rgba(14, 23, 29, 0.8);
-  color: #edf5fa;
+  background: rgba(13, 21, 26, 0.78);
+  color: #eef5f9;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 0.44rem;
-  padding: 0.22rem 0.45rem;
+  border-radius: 0.42rem;
+  padding: 0.18rem 0.4rem;
+  font-size: 0.72rem;
 }
 
 .touch-controls {
@@ -88,29 +86,26 @@ body {
   display: none;
   grid-template-columns: repeat(3, minmax(3.7rem, 18vw));
   grid-auto-rows: 3rem;
-  gap: 0.38rem;
+  gap: 0.36rem;
   z-index: 3;
 }
 
 .touch-controls button {
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 0.62rem;
-  background: rgba(10, 17, 22, 0.58);
-  color: #eff5f8;
-  font-size: 0.78rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.58rem;
+  background: rgba(11, 18, 23, 0.54);
+  color: #f0f6fa;
+  font-size: 0.74rem;
   letter-spacing: 0.03em;
   backdrop-filter: blur(5px);
 }
 
 .touch-controls button:active,
 .touch-controls button.active {
-  background: rgba(240, 246, 250, 0.35);
+  background: rgba(242, 248, 252, 0.34);
 }
 
-.touch-controls button[data-key="throttle"] {
-  grid-column: span 3;
-}
-
+.touch-controls button[data-key="throttle"],
 .touch-controls button[data-key="boost"] {
   grid-column: span 3;
 }
@@ -123,9 +118,8 @@ body {
   .hud {
     left: 0.6rem;
     right: 0.6rem;
-    bottom: 8.9rem;
+    bottom: 8.8rem;
     max-width: none;
-    padding: 0.64rem 0.8rem;
   }
 }
 
