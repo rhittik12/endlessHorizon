@@ -174,6 +174,12 @@ const reusableVecB = new THREE.Vector3();
 const reusableVecC = new THREE.Vector3();
 const worldUp = new THREE.Vector3(0, 1, 0);
 
+const fogNight = new THREE.Color(0x1c2433);
+const fogDay = new THREE.Color(0x94a8b2);
+const fogRain = new THREE.Color(0x7d8c98);
+const fogMist = new THREE.Color(0x83919d);
+const fogClear = new THREE.Color(0x94a8b2);
+
 let speed = 0;
 let yaw = 0;
 let steerVisual = 0;
@@ -791,9 +797,7 @@ function updateLighting(dt) {
   hemi.intensity = 0.16 + day * 0.48;
   ambient.intensity = 0.08 + day * 0.14;
 
-  const fogNight = new THREE.Color(0x1c2433);
-  const fogDay = new THREE.Color(0x94a8b2);
-  scene.fog.color.copy(fogNight.clone().lerp(fogDay, day));
+  scene.fog.color.copy(fogNight).lerp(fogDay, day);
 
   const baseExposure = THREE.MathUtils.lerp(0.38, 0.62, day);
   reusableVecA.set(Math.sin(yaw), 0, Math.cos(yaw)).normalize();
@@ -827,21 +831,21 @@ function updateWeather(dt) {
     cloudMaterial.opacity = THREE.MathUtils.damp(cloudMaterial.opacity, 0.54, 2.6, dt);
     scene.fog.near = 70;
     scene.fog.far = 1050;
-    scene.fog.color.lerp(new THREE.Color(0x7d8c98), 0.35);
+    scene.fog.color.lerp(fogRain, 0.35);
     roadMaterial.roughness = THREE.MathUtils.damp(roadMaterial.roughness, 0.62, 3.2, dt);
   } else if (weather === "mist") {
     rainMaterialPoints.opacity = THREE.MathUtils.damp(rainMaterialPoints.opacity, 0, 4.1, dt);
     cloudMaterial.opacity = THREE.MathUtils.damp(cloudMaterial.opacity, 0.44, 2.6, dt);
     scene.fog.near = 68;
     scene.fog.far = 960;
-    scene.fog.color.lerp(new THREE.Color(0x83919d), 0.45);
+    scene.fog.color.lerp(fogMist, 0.45);
     roadMaterial.roughness = THREE.MathUtils.damp(roadMaterial.roughness, 0.8, 3.2, dt);
   } else {
     rainMaterialPoints.opacity = THREE.MathUtils.damp(rainMaterialPoints.opacity, 0, 4.1, dt);
     cloudMaterial.opacity = THREE.MathUtils.damp(cloudMaterial.opacity, 0.3, 2.6, dt);
     scene.fog.near = 140;
     scene.fog.far = 2100;
-    scene.fog.color.lerp(new THREE.Color(0x94a8b2), 0.12);
+    scene.fog.color.lerp(fogClear, 0.12);
     roadMaterial.roughness = THREE.MathUtils.damp(roadMaterial.roughness, 0.94, 3.2, dt);
   }
 
