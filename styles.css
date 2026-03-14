@@ -42,7 +42,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(10, 18, 24, 0.32);
   backdrop-filter: blur(5px);
-  max-width: min(33rem, 94vw);
+  max-width: min(34rem, 94vw);
 }
 
 .hud h1 {
@@ -61,8 +61,14 @@ body {
   opacity: 0.86;
 }
 
+.control-row {
+  margin-top: 0.32rem;
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
 .quality {
-  margin-top: 0.28rem;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;

@@ -7,6 +7,7 @@ import { Sky } from "three/examples/jsm/objects/Sky.js";
 const canvas = document.querySelector("#game");
 const statusEl = document.querySelector("#status");
 const qualitySelect = document.querySelector("#quality-select");
+const scenarioSelect = document.querySelector("#scenario-select");
 const touchButtons = Array.from(document.querySelectorAll(".touch-controls button"));
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -38,10 +39,10 @@ sky.scale.setScalar(9000);
 scene.add(sky);
 
 const skyUniforms = sky.material.uniforms;
-skyUniforms.turbidity.value = 4.8;
-skyUniforms.rayleigh.value = 1.2;
-skyUniforms.mieCoefficient.value = 0.0012;
-skyUniforms.mieDirectionalG.value = 0.68;
+skyUniforms.turbidity.value = 3.9;
+skyUniforms.rayleigh.value = 1.08;
+skyUniforms.mieCoefficient.value = 0.0009;
+skyUniforms.mieDirectionalG.value = 0.62;
 const skySunPosition = new THREE.Vector3();
 
 function makeCanvasTexture(size, drawFn, wrap = true) {
@@ -174,11 +175,309 @@ const reusableVecB = new THREE.Vector3();
 const reusableVecC = new THREE.Vector3();
 const worldUp = new THREE.Vector3(0, 1, 0);
 
-const fogNight = new THREE.Color(0x1c2433);
-const fogDay = new THREE.Color(0x94a8b2);
-const fogRain = new THREE.Color(0x7d8c98);
-const fogMist = new THREE.Color(0x83919d);
-const fogClear = new THREE.Color(0x94a8b2);
+const scenarioColors = {
+  fogNight: new THREE.Color(0x1c2433),
+  fogDay: new THREE.Color(0x94a8b2),
+  fogClear: new THREE.Color(0x94a8b2),
+  fogMist: new THREE.Color(0x83919d),
+  fogRain: new THREE.Color(0x7d8c98),
+  fogSnow: new THREE.Color(0xdce6f2),
+  valley: new THREE.Color(0x76915f),
+  hill: new THREE.Color(0xbec07a),
+  nearRoad: new THREE.Color(0xaa9d79),
+  shadow: new THREE.Color(0x627952),
+};
+
+const SCENARIO_PRESETS = {
+  sunny: {
+    label: "sunny",
+    forcedWeather: "clear",
+    timeStart: 0.26,
+    timeRate: 1,
+    speedScale: 0.9,
+    density: { grass: 1.05, scenic: 1.0, belt: 1.0 },
+    sky: { turbidity: 3.8, rayleigh: 1.1, mieCoefficient: 0.00085, mieDirectionalG: 0.6 },
+    palette: {
+      valley: 0x76915f,
+      hill: 0xbec07a,
+      nearRoad: 0xaa9d79,
+      shadow: 0x627952,
+      foliage: 0x5f7e4d,
+      trunk: 0x6d4f30,
+      stone: 0xd4cdc0,
+      barrier: 0xc7ced5,
+      shoulder: 0xa89f88,
+      lines: 0xf4f1e8,
+      distantNear: 0x8ea076,
+      distantFar: 0xa4af8a,
+      distantForest: 0x445a3b,
+      roadTint: 0xffffff,
+      grassTint: 0xffffff,
+    },
+    fog: {
+      night: 0x1c2433,
+      day: 0x94a8b2,
+      clear: 0x93a9b9,
+      mist: 0x8f9ca7,
+      rain: 0x7d8c98,
+      snow: 0xcdd8e6,
+      clearNear: 150,
+      clearFar: 2200,
+      mistNear: 82,
+      mistFar: 1120,
+      rainNear: 76,
+      rainFar: 1180,
+      snowNear: 76,
+      snowFar: 1100,
+    },
+    lighting: {
+      sunNight: 0.03,
+      sunDay: 0.56,
+      hemiNight: 0.15,
+      hemiDay: 0.48,
+      ambientNight: 0.07,
+      ambientDay: 0.16,
+      sunNightColor: 0x93abd8,
+      sunDayColor: 0xffefcf,
+      exposureNight: 0.3,
+      exposureDay: 0.54,
+      minExposure: 0.2,
+      glareFactor: 0.92,
+      bloomScale: 1,
+    },
+    precip: {
+      rainOpacity: 0,
+      snowOpacity: 0,
+      sizeRain: 0.2,
+      sizeSnow: 0.33,
+      colorRain: 0xc8ddeb,
+      colorSnow: 0xf2f7ff,
+      rainFall: 58,
+      snowFall: 14,
+      windRain: 0.26,
+      windSnow: 1.05,
+      cloudClear: 0.3,
+      cloudStorm: 0.52,
+      cloudSnow: 0.44,
+    },
+  },
+  rainy: {
+    label: "rainy",
+    forcedWeather: "rain",
+    timeStart: 0.24,
+    timeRate: 0.72,
+    speedScale: 0.82,
+    density: { grass: 1.0, scenic: 0.95, belt: 0.95 },
+    sky: { turbidity: 8.2, rayleigh: 0.72, mieCoefficient: 0.0048, mieDirectionalG: 0.73 },
+    palette: {
+      valley: 0x5e7967,
+      hill: 0x7f9276,
+      nearRoad: 0x7f7f76,
+      shadow: 0x4f6255,
+      foliage: 0x486451,
+      trunk: 0x5f4832,
+      stone: 0xa7a7a5,
+      barrier: 0xaab6c1,
+      shoulder: 0x8a8c84,
+      lines: 0xece8de,
+      distantNear: 0x6f7f73,
+      distantFar: 0x879185,
+      distantForest: 0x3c5044,
+      roadTint: 0xcfd4dc,
+      grassTint: 0xe6ebe7,
+    },
+    fog: {
+      night: 0x1a2230,
+      day: 0x788591,
+      clear: 0x7d8c97,
+      mist: 0x76828d,
+      rain: 0x707e8a,
+      snow: 0xb8c4d1,
+      clearNear: 120,
+      clearFar: 1500,
+      mistNear: 70,
+      mistFar: 920,
+      rainNear: 66,
+      rainFar: 940,
+      snowNear: 72,
+      snowFar: 980,
+    },
+    lighting: {
+      sunNight: 0.03,
+      sunDay: 0.37,
+      hemiNight: 0.14,
+      hemiDay: 0.35,
+      ambientNight: 0.08,
+      ambientDay: 0.16,
+      sunNightColor: 0x8ea4cf,
+      sunDayColor: 0xdbe6f0,
+      exposureNight: 0.28,
+      exposureDay: 0.44,
+      minExposure: 0.18,
+      glareFactor: 0.75,
+      bloomScale: 0.5,
+    },
+    precip: {
+      rainOpacity: 0.86,
+      snowOpacity: 0,
+      sizeRain: 0.21,
+      sizeSnow: 0.32,
+      colorRain: 0xbad1e2,
+      colorSnow: 0xf2f7ff,
+      rainFall: 78,
+      snowFall: 14,
+      windRain: 0.34,
+      windSnow: 1.05,
+      cloudClear: 0.5,
+      cloudStorm: 0.64,
+      cloudSnow: 0.5,
+    },
+  },
+  snow: {
+    label: "snow",
+    forcedWeather: "snow",
+    timeStart: 0.3,
+    timeRate: 0.68,
+    speedScale: 0.74,
+    density: { grass: 0.35, scenic: 0.8, belt: 0.7 },
+    sky: { turbidity: 6.4, rayleigh: 0.92, mieCoefficient: 0.0032, mieDirectionalG: 0.67 },
+    palette: {
+      valley: 0xdce4ed,
+      hill: 0xf2f6fa,
+      nearRoad: 0xd6dee7,
+      shadow: 0xb8c7d5,
+      foliage: 0x5e6f68,
+      trunk: 0x6a5b4d,
+      stone: 0xc7ced8,
+      barrier: 0xd8e0e8,
+      shoulder: 0xc3c9d2,
+      lines: 0xf8fbff,
+      distantNear: 0xcdd7e4,
+      distantFar: 0xe3eaf4,
+      distantForest: 0x6b7972,
+      roadTint: 0xeff3f8,
+      grassTint: 0xf2f8ff,
+    },
+    fog: {
+      night: 0x2a3344,
+      day: 0xbecddc,
+      clear: 0xc8d5e2,
+      mist: 0xc0cfdd,
+      rain: 0xb4c2cf,
+      snow: 0xd7e2ee,
+      clearNear: 110,
+      clearFar: 1320,
+      mistNear: 74,
+      mistFar: 980,
+      rainNear: 70,
+      rainFar: 920,
+      snowNear: 70,
+      snowFar: 930,
+    },
+    lighting: {
+      sunNight: 0.02,
+      sunDay: 0.4,
+      hemiNight: 0.12,
+      hemiDay: 0.4,
+      ambientNight: 0.07,
+      ambientDay: 0.15,
+      sunNightColor: 0x94a8d2,
+      sunDayColor: 0xe9f2fa,
+      exposureNight: 0.26,
+      exposureDay: 0.42,
+      minExposure: 0.18,
+      glareFactor: 0.58,
+      bloomScale: 0.55,
+    },
+    precip: {
+      rainOpacity: 0,
+      snowOpacity: 0.78,
+      sizeRain: 0.2,
+      sizeSnow: 0.4,
+      colorRain: 0xc8ddeb,
+      colorSnow: 0xf4f9ff,
+      rainFall: 58,
+      snowFall: 16,
+      windRain: 0.26,
+      windSnow: 1.2,
+      cloudClear: 0.44,
+      cloudStorm: 0.5,
+      cloudSnow: 0.56,
+    },
+  },
+  desert: {
+    label: "desert",
+    forcedWeather: "clear",
+    timeStart: 0.33,
+    timeRate: 0.95,
+    speedScale: 0.86,
+    density: { grass: 0.2, scenic: 0.72, belt: 0.2 },
+    sky: { turbidity: 4.6, rayleigh: 0.76, mieCoefficient: 0.0015, mieDirectionalG: 0.61 },
+    palette: {
+      valley: 0xcfa96f,
+      hill: 0xe2c489,
+      nearRoad: 0xb89a73,
+      shadow: 0x9e805e,
+      foliage: 0x8e864f,
+      trunk: 0x7f6740,
+      stone: 0xbca37d,
+      barrier: 0xb8b0a1,
+      shoulder: 0xaa9470,
+      lines: 0xf9f3dc,
+      distantNear: 0xc8ab77,
+      distantFar: 0xd9bf8f,
+      distantForest: 0x867648,
+      roadTint: 0xeadfcb,
+      grassTint: 0xf0dcb2,
+    },
+    fog: {
+      night: 0x2b2730,
+      day: 0xd5bf9f,
+      clear: 0xd1bc9d,
+      mist: 0xc3ae91,
+      rain: 0xb7a18a,
+      snow: 0xd9ccb9,
+      clearNear: 140,
+      clearFar: 1900,
+      mistNear: 100,
+      mistFar: 1280,
+      rainNear: 88,
+      rainFar: 1160,
+      snowNear: 88,
+      snowFar: 1160,
+    },
+    lighting: {
+      sunNight: 0.03,
+      sunDay: 0.5,
+      hemiNight: 0.12,
+      hemiDay: 0.41,
+      ambientNight: 0.07,
+      ambientDay: 0.13,
+      sunNightColor: 0xa0abcf,
+      sunDayColor: 0xffe4b5,
+      exposureNight: 0.3,
+      exposureDay: 0.49,
+      minExposure: 0.2,
+      glareFactor: 0.66,
+      bloomScale: 0.62,
+    },
+    precip: {
+      rainOpacity: 0,
+      snowOpacity: 0,
+      sizeRain: 0.2,
+      sizeSnow: 0.33,
+      colorRain: 0xc8ddeb,
+      colorSnow: 0xf2f7ff,
+      rainFall: 58,
+      snowFall: 14,
+      windRain: 0.26,
+      windSnow: 1.05,
+      cloudClear: 0.16,
+      cloudStorm: 0.35,
+      cloudSnow: 0.28,
+    },
+  },
+};
 
 let speed = 0;
 let yaw = 0;
@@ -188,11 +487,17 @@ let weather = "clear";
 let weatherTimer = 18;
 let prevSpeed = 0;
 let currentQuality = "high";
+let currentScenario = "sunny";
+let activeScenario = SCENARIO_PRESETS.sunny;
+let scenarioGrassDensity = 1;
+let scenarioScenicDensity = 1;
+let scenarioBeltDensity = 1;
+let fixedWeather = "clear";
 
-const MAX_FORWARD_SPEED = 31;
-const MAX_REVERSE_SPEED = 6;
+const BASE_MAX_FORWARD_SPEED = 22;
+let maxForwardSpeed = BASE_MAX_FORWARD_SPEED;
+const MAX_REVERSE_SPEED = 4.8;
 const SPEED_TO_KMH = 3.1;
-
 const car = new THREE.Group();
 car.rotation.order = "YXZ";
 
@@ -323,6 +628,67 @@ const distantForestMaterial = new THREE.MeshStandardMaterial({
   metalness: 0,
   fog: true,
 });
+
+function capitalizeWord(value) {
+  if (!value) return "";
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function applyScenario(name, rebuildWorld = true) {
+  const next = SCENARIO_PRESETS[name] || SCENARIO_PRESETS.sunny;
+  currentScenario = SCENARIO_PRESETS[name] ? name : "sunny";
+  activeScenario = next;
+  fixedWeather = next.forcedWeather || null;
+  weather = fixedWeather || weather;
+  weatherTimer = 18;
+  clockTime = next.timeStart;
+
+  scenarioGrassDensity = next.density.grass;
+  scenarioScenicDensity = next.density.scenic;
+  scenarioBeltDensity = next.density.belt;
+  maxForwardSpeed = BASE_MAX_FORWARD_SPEED * next.speedScale;
+
+  skyUniforms.turbidity.value = next.sky.turbidity;
+  skyUniforms.rayleigh.value = next.sky.rayleigh;
+  skyUniforms.mieCoefficient.value = next.sky.mieCoefficient;
+  skyUniforms.mieDirectionalG.value = next.sky.mieDirectionalG;
+
+  scenarioColors.fogNight.setHex(next.fog.night);
+  scenarioColors.fogDay.setHex(next.fog.day);
+  scenarioColors.fogClear.setHex(next.fog.clear);
+  scenarioColors.fogMist.setHex(next.fog.mist);
+  scenarioColors.fogRain.setHex(next.fog.rain);
+  scenarioColors.fogSnow.setHex(next.fog.snow);
+  scenarioColors.valley.setHex(next.palette.valley);
+  scenarioColors.hill.setHex(next.palette.hill);
+  scenarioColors.nearRoad.setHex(next.palette.nearRoad);
+  scenarioColors.shadow.setHex(next.palette.shadow);
+
+  roadMaterial.color.setHex(next.palette.roadTint);
+  shoulderMaterial.color.setHex(next.palette.shoulder);
+  lineMaterial.color.setHex(next.palette.lines);
+  barrierMaterial.color.setHex(next.palette.barrier);
+  stoneMaterial.color.setHex(next.palette.stone);
+  trunkMaterial.color.setHex(next.palette.trunk);
+  foliageMaterial.color.setHex(next.palette.foliage);
+  grassBillboardMaterial.color.setHex(next.palette.grassTint);
+  distantTerrainMaterialNear.color.setHex(next.palette.distantNear);
+  distantTerrainMaterialFar.color.setHex(next.palette.distantFar);
+  distantForestMaterial.color.setHex(next.palette.distantForest);
+
+  rainMaterialPoints.color.setHex(next.precip.colorRain);
+  rainMaterialPoints.size = next.precip.sizeRain;
+  cloudMaterial.opacity = next.precip.cloudClear;
+
+  scene.fog.near = next.fog.clearNear;
+  scene.fog.far = next.fog.clearFar;
+  scene.fog.color.copy(scenarioColors.fogClear);
+
+  if (rebuildWorld) {
+    clearChunks();
+    updateChunks();
+  }
+}
 
 function hash2(x, z) {
   const s = Math.sin(x * 127.1 + z * 311.7) * 43758.5453123;
@@ -552,12 +918,6 @@ function createTerrainChunk(originX, originZ) {
   const uv = geo.attributes.uv;
   const colors = new Float32Array(pos.count * 3);
   const color = new THREE.Color();
-
-  const valleyGreen = new THREE.Color(0x76915f);
-  const hillGold = new THREE.Color(0xbec07a);
-  const nearRoadDry = new THREE.Color(0xaa9d79);
-  const shadowTone = new THREE.Color(0x627952);
-
   for (let i = 0; i < pos.count; i += 1) {
     const lx = pos.getX(i);
     const lz = pos.getZ(i);
@@ -576,10 +936,10 @@ function createTerrainChunk(originX, originZ) {
     const shade = THREE.MathUtils.clamp(0.44 + (fbm(wx * 0.012, wz * 0.012) - 0.5) * 0.56, 0, 1);
 
     color
-      .copy(valleyGreen)
-      .lerp(hillGold, hill * 0.62 + slopeBias * 0.4 + patchNoise * 0.15)
-      .lerp(nearRoadDry, nearRoad * 0.38)
-      .lerp(shadowTone, valleyBias * (1 - shade) * 0.42);
+      .copy(scenarioColors.valley)
+      .lerp(scenarioColors.hill, hill * 0.62 + slopeBias * 0.4 + patchNoise * 0.15)
+      .lerp(scenarioColors.nearRoad, nearRoad * 0.38)
+      .lerp(scenarioColors.shadow, valleyBias * (1 - shade) * 0.42);
 
     colors[i * 3] = color.r;
     colors[i * 3 + 1] = color.g;
@@ -659,7 +1019,7 @@ function createWallSegment(z, side, group) {
 
 function createGrassBand(zStart, zEnd, side, chunk, rng) {
   const baseCount = currentQuality === "low" ? 90 : currentQuality === "medium" ? 160 : 260;
-  const count = Math.floor(baseCount * densityFactor);
+  const count = Math.max(24, Math.floor(baseCount * densityFactor * scenarioGrassDensity));
   const mesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.9, 1.5), grassBillboardMaterial, count);
   const dummy = new THREE.Object3D();
 
@@ -709,7 +1069,7 @@ function createChunk(cx, cz) {
     if ((Math.floor(z / 18) & 1) === 0) createWallSegment(z, 1, chunk);
   }
 
-  const scenicCount = Math.floor((currentQuality === "low" ? 24 : currentQuality === "medium" ? 42 : 62) * densityFactor);
+  const scenicCount = Math.floor((currentQuality === "low" ? 24 : currentQuality === "medium" ? 42 : 62) * densityFactor * scenarioScenicDensity);
   for (let i = 0; i < scenicCount; i += 1) {
     const rx = originX + (rng() - 0.5) * chunkSize;
     const rz = originZ + (rng() - 0.5) * chunkSize;
@@ -730,7 +1090,7 @@ function createChunk(cx, cz) {
     }
   }
 
-  const beltCount = Math.floor((currentQuality === "low" ? 12 : currentQuality === "medium" ? 20 : 30) * densityFactor);
+  const beltCount = Math.floor((currentQuality === "low" ? 12 : currentQuality === "medium" ? 20 : 30) * densityFactor * scenarioBeltDensity);
   for (let i = 0; i < beltCount; i += 1) {
     const z = zStart + rng() * (zEnd - zStart);
     const x = roadCenterX(z) - (70 + rng() * 105);
@@ -779,11 +1139,11 @@ function updateChunks() {
 }
 
 function updateLighting(dt) {
-  clockTime = (clockTime + dt * 0.0035) % 1;
+  clockTime = (clockTime + dt * 0.0035 * activeScenario.timeRate) % 1;
   const theta = clockTime * Math.PI * 2;
   const day = THREE.MathUtils.clamp(Math.sin(theta) * 0.9 + 0.4, 0, 1);
 
-  const elevation = THREE.MathUtils.lerp(-6, 52, day);
+  const elevation = THREE.MathUtils.lerp(-8, 50, day);
   const azimuth = (clockTime * 360 + 190) % 360;
   const phi = THREE.MathUtils.degToRad(90 - elevation);
   const t = THREE.MathUtils.degToRad(azimuth);
@@ -791,70 +1151,108 @@ function updateLighting(dt) {
   skySunPosition.setFromSphericalCoords(1, phi, t);
   skyUniforms.sunPosition.value.copy(skySunPosition);
 
+  const light = activeScenario.lighting;
   sun.position.copy(skySunPosition).multiplyScalar(540);
-  sun.intensity = 0.05 + day * 0.6;
-  sun.color.set(day < 0.2 ? 0x96abd9 : 0xfff0d2);
-  hemi.intensity = 0.16 + day * 0.48;
-  ambient.intensity = 0.08 + day * 0.14;
+  sun.intensity = THREE.MathUtils.lerp(light.sunNight, light.sunDay, day);
+  sun.color.set(day < 0.2 ? light.sunNightColor : light.sunDayColor);
+  hemi.intensity = THREE.MathUtils.lerp(light.hemiNight, light.hemiDay, day);
+  ambient.intensity = THREE.MathUtils.lerp(light.ambientNight, light.ambientDay, day);
 
-  scene.fog.color.copy(fogNight).lerp(fogDay, day);
+  scene.fog.color.copy(scenarioColors.fogNight).lerp(scenarioColors.fogDay, day);
 
-  const baseExposure = THREE.MathUtils.lerp(0.38, 0.62, day);
+  const baseExposure = THREE.MathUtils.lerp(light.exposureNight, light.exposureDay, day);
   reusableVecA.set(Math.sin(yaw), 0, Math.cos(yaw)).normalize();
   reusableVecB.copy(sun.position).normalize();
-  const glare = Math.pow(Math.max(0, reusableVecA.dot(reusableVecB)), 2);
-  renderer.toneMappingExposure = Math.max(0.22, baseExposure * (1 - glare * 0.75));
-  const bloomBase = currentQuality === "low" ? 0.0 : currentQuality === "medium" ? 0.03 : 0.06;
-  bloomPass.strength = THREE.MathUtils.lerp(bloomBase * 0.2, bloomBase * 0.5, day) * (1 - glare * 0.95);
+  const glare = Math.pow(Math.max(0, reusableVecA.dot(reusableVecB)), 2.4);
+  renderer.toneMappingExposure = Math.max(light.minExposure, baseExposure * (1 - glare * light.glareFactor));
 
-  const isNight = day < 0.25;
+  const bloomBase = currentQuality === "low" ? 0.0 : currentQuality === "medium" ? 0.03 : 0.06;
+  bloomPass.strength = THREE.MathUtils.lerp(bloomBase * 0.16, bloomBase * 0.42, day) * (1 - glare * 0.98) * light.bloomScale;
+
+  const isNight = day < 0.24;
   const targetIntensity = isNight ? 180 : 0;
   const targetHeadlightGlow = isNight ? 3.0 : 0;
-  
+
   spotLightL.intensity = THREE.MathUtils.lerp(spotLightL.intensity, targetIntensity, 0.05);
   spotLightL.target.updateMatrixWorld();
   spotLightR.intensity = THREE.MathUtils.lerp(spotLightR.intensity, targetIntensity, 0.05);
   spotLightR.target.updateMatrixWorld();
   headLightPaint.emissiveIntensity = THREE.MathUtils.lerp(headLightPaint.emissiveIntensity, targetHeadlightGlow, 0.05);
 }
-
 function updateWeather(dt) {
-  weatherTimer -= dt;
-  if (weatherTimer <= 0) {
-    weatherTimer = 36 + Math.random() * 52;
-    const r = Math.random();
-    weather = r < 0.58 ? "clear" : r < 0.86 ? "mist" : "rain";
+  if (!fixedWeather) {
+    weatherTimer -= dt;
+    if (weatherTimer <= 0) {
+      weatherTimer = 36 + Math.random() * 52;
+      const r = Math.random();
+      weather = r < 0.58 ? "clear" : r < 0.86 ? "mist" : "rain";
+    }
+  } else {
+    weather = fixedWeather;
   }
+
+  const fog = activeScenario.fog;
+  const precip = activeScenario.precip;
+
+  let targetDropOpacity = 0;
+  let targetCloudOpacity = precip.cloudClear;
+  let fogNear = fog.clearNear;
+  let fogFar = fog.clearFar;
+  let fogTint = scenarioColors.fogClear;
+  let roadRoughness = 0.94;
+  let dropColor = precip.colorRain;
+  let dropSize = precip.sizeRain;
+  let fallSpeed = precip.rainFall;
+  let windScale = precip.windRain;
 
   if (weather === "rain") {
-    rainMaterialPoints.opacity = THREE.MathUtils.damp(rainMaterialPoints.opacity, 0.86, 4.1, dt);
-    cloudMaterial.opacity = THREE.MathUtils.damp(cloudMaterial.opacity, 0.54, 2.6, dt);
-    scene.fog.near = 70;
-    scene.fog.far = 1050;
-    scene.fog.color.lerp(fogRain, 0.35);
-    roadMaterial.roughness = THREE.MathUtils.damp(roadMaterial.roughness, 0.62, 3.2, dt);
+    targetDropOpacity = precip.rainOpacity;
+    targetCloudOpacity = precip.cloudStorm;
+    fogNear = fog.rainNear;
+    fogFar = fog.rainFar;
+    fogTint = scenarioColors.fogRain;
+    roadRoughness = currentScenario === "rainy" ? 0.56 : 0.64;
+    dropColor = precip.colorRain;
+    dropSize = precip.sizeRain;
+    fallSpeed = precip.rainFall;
+    windScale = precip.windRain;
+  } else if (weather === "snow") {
+    targetDropOpacity = precip.snowOpacity;
+    targetCloudOpacity = precip.cloudSnow;
+    fogNear = fog.snowNear;
+    fogFar = fog.snowFar;
+    fogTint = scenarioColors.fogSnow;
+    roadRoughness = 0.9;
+    dropColor = precip.colorSnow;
+    dropSize = precip.sizeSnow;
+    fallSpeed = precip.snowFall;
+    windScale = precip.windSnow;
   } else if (weather === "mist") {
-    rainMaterialPoints.opacity = THREE.MathUtils.damp(rainMaterialPoints.opacity, 0, 4.1, dt);
-    cloudMaterial.opacity = THREE.MathUtils.damp(cloudMaterial.opacity, 0.44, 2.6, dt);
-    scene.fog.near = 68;
-    scene.fog.far = 960;
-    scene.fog.color.lerp(fogMist, 0.45);
-    roadMaterial.roughness = THREE.MathUtils.damp(roadMaterial.roughness, 0.8, 3.2, dt);
-  } else {
-    rainMaterialPoints.opacity = THREE.MathUtils.damp(rainMaterialPoints.opacity, 0, 4.1, dt);
-    cloudMaterial.opacity = THREE.MathUtils.damp(cloudMaterial.opacity, 0.3, 2.6, dt);
-    scene.fog.near = 140;
-    scene.fog.far = 2100;
-    scene.fog.color.lerp(fogClear, 0.12);
-    roadMaterial.roughness = THREE.MathUtils.damp(roadMaterial.roughness, 0.94, 3.2, dt);
+    targetDropOpacity = 0;
+    targetCloudOpacity = Math.max(precip.cloudClear, 0.44);
+    fogNear = fog.mistNear;
+    fogFar = fog.mistFar;
+    fogTint = scenarioColors.fogMist;
+    roadRoughness = 0.82;
+  } else if (currentScenario === "desert") {
+    roadRoughness = 0.9;
   }
+
+  rainMaterialPoints.color.setHex(dropColor);
+  rainMaterialPoints.size = dropSize;
+  rainMaterialPoints.opacity = THREE.MathUtils.damp(rainMaterialPoints.opacity, targetDropOpacity, 4.1, dt);
+  cloudMaterial.opacity = THREE.MathUtils.damp(cloudMaterial.opacity, targetCloudOpacity, 2.6, dt);
+  scene.fog.near = fogNear;
+  scene.fog.far = fogFar;
+  scene.fog.color.lerp(fogTint, 0.35);
+  roadMaterial.roughness = THREE.MathUtils.damp(roadMaterial.roughness, roadRoughness, 3.2, dt);
 
   const rp = rain.geometry.attributes.position;
   for (let i = 0; i < rp.count; i += 1) {
     const k = i * 3;
-    rp.array[k] += Math.sin(i * 1.7) * dt * 0.3;
-    rp.array[k + 1] -= dt * 58;
-    rp.array[k + 2] += Math.cos(i * 1.2) * dt * 0.2;
+    rp.array[k] += Math.sin(i * 1.7) * dt * windScale;
+    rp.array[k + 1] -= dt * fallSpeed;
+    rp.array[k + 2] += Math.cos(i * 1.2) * dt * windScale * 0.7;
     if (rp.array[k + 1] < car.position.y - 10) {
       rp.array[k] = car.position.x + (Math.random() - 0.5) * 320;
       rp.array[k + 1] = car.position.y + 8 + Math.random() * 118;
@@ -864,7 +1262,7 @@ function updateWeather(dt) {
   rp.needsUpdate = true;
 
   const cp = clouds.geometry.attributes.position;
-  const cloudDrift = weather === "rain" ? 13 : 8;
+  const cloudDrift = weather === "rain" ? 13 : weather === "snow" ? 7 : currentScenario === "desert" ? 10 : 8;
   for (let i = 0; i < cp.count; i += 1) {
     const k = i * 3;
     cp.array[k + 2] += dt * cloudDrift;
@@ -876,11 +1274,10 @@ function updateWeather(dt) {
   }
   cp.needsUpdate = true;
 }
-
 function updateCar(dt) {
   const accel = input.throttle ? 13.5 : 0;
   const brake = input.brake ? 20 : 0;
-  const drag = THREE.MathUtils.lerp(3.3, 8.2, Math.min(Math.abs(speed) / MAX_FORWARD_SPEED, 1));
+  const drag = THREE.MathUtils.lerp(3.3, 8.2, Math.min(Math.abs(speed) / maxForwardSpeed, 1));
   const boostMul = input.boost ? 1.14 : 1;
 
   speed += accel * boostMul * dt;
@@ -888,14 +1285,14 @@ function updateCar(dt) {
   speed -= Math.sign(speed) * drag * dt;
 
   if (Math.abs(speed) < 0.015) speed = 0;
-  speed = THREE.MathUtils.clamp(speed, -MAX_REVERSE_SPEED, MAX_FORWARD_SPEED);
+  speed = THREE.MathUtils.clamp(speed, -MAX_REVERSE_SPEED, maxForwardSpeed);
 
   const steerInput = (input.right ? 1 : 0) - (input.left ? 1 : 0);
   const laneCenter = roadCenterX(car.position.z);
   const laneOffset = (car.position.x - laneCenter) / (roadWidth * 0.5);
   speed -= THREE.MathUtils.clamp(Math.abs(laneOffset) - 0.9, 0, 1) * 10.8 * dt;
 
-  const steerPower = THREE.MathUtils.lerp(1.38, 0.36, Math.min(Math.abs(speed) / MAX_FORWARD_SPEED, 1));
+  const steerPower = THREE.MathUtils.lerp(1.38, 0.36, Math.min(Math.abs(speed) / maxForwardSpeed, 1));
   yaw -= steerInput * steerPower * dt * (speed >= 0 ? 1 : -1);
   yaw += laneOffset * 0.028 * dt;
 
@@ -911,7 +1308,7 @@ function updateCar(dt) {
 
   steerVisual = THREE.MathUtils.damp(steerVisual, steerInput * 0.58, 9, dt);
   const pitch = THREE.MathUtils.clamp(-accelLong * 0.0056 - slope * 0.07, -0.18, 0.16);
-  const roll = THREE.MathUtils.clamp(-steerVisual * Math.min(Math.abs(speed) / MAX_FORWARD_SPEED, 1) * 0.16, -0.22, 0.22);
+  const roll = THREE.MathUtils.clamp(-steerVisual * Math.min(Math.abs(speed) / maxForwardSpeed, 1) * 0.16, -0.22, 0.22);
 
   car.rotation.y = yaw;
   car.rotation.x = pitch;
@@ -925,7 +1322,7 @@ function updateCar(dt) {
     w.mesh.rotation.x += speed * dt * 0.95;
   }
 
-  const speedRatio = Math.min(Math.abs(speed) / MAX_FORWARD_SPEED, 1);
+  const speedRatio = Math.min(Math.abs(speed) / maxForwardSpeed, 1);
   const camDistance = THREE.MathUtils.lerp(7.6, 12.8, speedRatio);
   const camHeight = THREE.MathUtils.lerp(3.4, 4.9, speedRatio);
 
@@ -942,7 +1339,7 @@ function updateCar(dt) {
   camera.updateProjectionMatrix();
 
   const kmh = Math.max(0, speed) * SPEED_TO_KMH;
-  statusEl.textContent = `Speed ${kmh.toFixed(0)} km/h | Weather ${weather} | Time ${(clockTime * 24).toFixed(1)}h | Quality ${currentQuality}`;
+  statusEl.textContent = `Speed ${kmh.toFixed(0)} km/h | Weather ${capitalizeWord(weather)} | Scenario ${capitalizeWord(currentScenario)} | Time ${(clockTime * 24).toFixed(1)}h | Quality ${currentQuality}`;
 }
 
 function applyQuality(preset) {
@@ -1038,11 +1435,16 @@ window.addEventListener("keyup", (e) => {
 
 window.addEventListener("resize", onResize);
 qualitySelect.addEventListener("change", () => applyQuality(qualitySelect.value));
+scenarioSelect.addEventListener("change", () => applyScenario(scenarioSelect.value));
 
 bindTouchControls();
 resetCar();
 updateDistantBackdrop();
-applyQuality("high");
+if (!SCENARIO_PRESETS[scenarioSelect.value]) {
+  scenarioSelect.value = "sunny";
+}
+applyScenario(scenarioSelect.value, false);
+applyQuality(qualitySelect.value || "high");
 statusEl.textContent = "Drive forward to begin";
 
 let last = performance.now();
