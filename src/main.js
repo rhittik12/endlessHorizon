@@ -145,7 +145,7 @@ const grassBladeTexture = makeCanvasTexture(
 const roadWidth = 9.3;
 const roadShoulder = 19;
 const chunkSize = 280;
-const chunkResolution = 82;
+const chunkResolution = 56;
 let activeChunkRadius = 2;
 let densityFactor = 1;
 
@@ -157,6 +157,7 @@ const barrierMaterial = new THREE.MeshStandardMaterial({ color: 0xc9d0d7, roughn
 const stoneMaterial = new THREE.MeshStandardMaterial({ color: 0xd4cdc0, map: stoneTexture, roughness: 0.96, metalness: 0.01 });
 const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x6d4f30, roughness: 1, metalness: 0 });
 const foliageMaterial = new THREE.MeshStandardMaterial({ color: 0x5f7e4d, roughness: 0.95, metalness: 0 });
+const cactusMaterial = new THREE.MeshStandardMaterial({ color: 0x6f8751, roughness: 0.96, metalness: 0.02 });
 const grassBillboardMaterial = new THREE.MeshStandardMaterial({
   color: 0xffffff,
   map: grassBladeTexture,
@@ -411,30 +412,30 @@ const SCENARIO_PRESETS = {
     timeStart: 0.33,
     timeRate: 0.95,
     speedScale: 0.86,
-    density: { grass: 0.2, scenic: 0.72, belt: 0.2 },
-    sky: { turbidity: 4.6, rayleigh: 0.76, mieCoefficient: 0.0015, mieDirectionalG: 0.61 },
+    density: { grass: 0.0, scenic: 1.0, belt: 0.72 },
+    sky: { turbidity: 3.4, rayleigh: 0.42, mieCoefficient: 0.0012, mieDirectionalG: 0.59 },
     palette: {
-      valley: 0xcfa96f,
-      hill: 0xe2c489,
-      nearRoad: 0xb89a73,
-      shadow: 0x9e805e,
+      valley: 0xd5a15a,
+      hill: 0xf0cb8d,
+      nearRoad: 0xc29462,
+      shadow: 0xa36f45,
       foliage: 0x8e864f,
       trunk: 0x7f6740,
       stone: 0xbca37d,
       barrier: 0xb8b0a1,
       shoulder: 0xaa9470,
       lines: 0xf9f3dc,
-      distantNear: 0xc8ab77,
-      distantFar: 0xd9bf8f,
-      distantForest: 0x867648,
-      roadTint: 0xeadfcb,
-      grassTint: 0xf0dcb2,
+      distantNear: 0xcf9250,
+      distantFar: 0xe1b77d,
+      distantForest: 0xa68452,
+      roadTint: 0xe6d3b4,
+      grassTint: 0xd9bc84,
     },
     fog: {
       night: 0x2b2730,
-      day: 0xd5bf9f,
-      clear: 0xd1bc9d,
-      mist: 0xc3ae91,
+      day: 0xe0b983,
+      clear: 0xe2bc88,
+      mist: 0xd2ae85,
       rain: 0xb7a18a,
       snow: 0xd9ccb9,
       clearNear: 140,
@@ -454,9 +455,9 @@ const SCENARIO_PRESETS = {
       ambientNight: 0.07,
       ambientDay: 0.13,
       sunNightColor: 0xa0abcf,
-      sunDayColor: 0xffe4b5,
+      sunDayColor: 0xffd28f,
       exposureNight: 0.3,
-      exposureDay: 0.49,
+      exposureDay: 0.46,
       minExposure: 0.2,
       glareFactor: 0.66,
       bloomScale: 0.62,
@@ -583,7 +584,7 @@ const cloudTexture = new THREE.CanvasTexture(cloudCanvas);
 cloudTexture.colorSpace = THREE.SRGBColorSpace;
 
 const cloudPoints = new THREE.BufferGeometry();
-const cloudCount = 260;
+const cloudCount = 160;
 const cloudArr = new Float32Array(cloudCount * 3);
 for (let i = 0; i < cloudCount; i += 1) {
   cloudArr[i * 3] = (Math.random() - 0.5) * 1900;
@@ -597,7 +598,7 @@ clouds.frustumCulled = false;
 scene.add(clouds);
 
 const rainGeometry = new THREE.BufferGeometry();
-const rainCount = 3500;
+const rainCount = 1800;
 const rainArr = new Float32Array(rainCount * 3);
 for (let i = 0; i < rainCount; i += 1) {
   rainArr[i * 3] = (Math.random() - 0.5) * 320;
@@ -624,6 +625,12 @@ const distantTerrainMaterialFar = new THREE.MeshStandardMaterial({
 });
 const distantForestMaterial = new THREE.MeshStandardMaterial({
   color: 0x445a3b,
+  roughness: 1,
+  metalness: 0,
+  fog: true,
+});
+const distantDesertSpireMaterial = new THREE.MeshStandardMaterial({
+  color: 0xb8925c,
   roughness: 1,
   metalness: 0,
   fog: true,
@@ -671,10 +678,14 @@ function applyScenario(name, rebuildWorld = true) {
   stoneMaterial.color.setHex(next.palette.stone);
   trunkMaterial.color.setHex(next.palette.trunk);
   foliageMaterial.color.setHex(next.palette.foliage);
+  cactusMaterial.color.setHex(currentScenario === "desert" ? 0x6f8751 : 0x6f8751);
   grassBillboardMaterial.color.setHex(next.palette.grassTint);
   distantTerrainMaterialNear.color.setHex(next.palette.distantNear);
   distantTerrainMaterialFar.color.setHex(next.palette.distantFar);
   distantForestMaterial.color.setHex(next.palette.distantForest);
+  distantDesertSpireMaterial.color.setHex(currentScenario === "desert" ? 0xb8925c : next.palette.distantFar);
+  distantForest.visible = currentScenario !== "desert";
+  distantDesertSpires.visible = currentScenario === "desert";
 
   rainMaterialPoints.color.setHex(next.precip.colorRain);
   rainMaterialPoints.size = next.precip.sizeRain;
@@ -807,10 +818,36 @@ function createDistantForestBand(radius, count, seed) {
   return mesh;
 }
 
-const distantRingNear = buildDistantRing(1400, 3200, 18, 96, 11, distantTerrainMaterialNear);
-const distantRingFar = buildDistantRing(3200, 5600, 12, 96, 23, distantTerrainMaterialFar);
-const distantForest = createDistantForestBand(2600, 700, 41);
-scene.add(distantRingNear, distantRingFar, distantForest);
+function createDistantSpireBand(radius, count, seed) {
+  const rng = createRng(seed);
+  const mesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(8, 13, 96, 6), distantDesertSpireMaterial, count);
+  const dummy = new THREE.Object3D();
+
+  for (let i = 0; i < count; i += 1) {
+    const a = rng() * Math.PI * 2;
+    const r = radius + (rng() - 0.5) * 340;
+    const x = Math.cos(a) * r;
+    const z = Math.sin(a) * r;
+    const y = -125 + fbm((x + seed * 17) * 0.00065, (z - seed * 9) * 0.00065) * 70;
+    const s = 0.55 + rng() * 1.5;
+
+    dummy.position.set(x, y + 24 * s, z);
+    dummy.rotation.y = rng() * Math.PI * 2;
+    dummy.scale.set(s, 0.7 + rng() * 1.35, s);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+  }
+
+  mesh.instanceMatrix.needsUpdate = true;
+  return mesh;
+}
+
+const distantRingNear = buildDistantRing(1400, 3200, 14, 72, 11, distantTerrainMaterialNear);
+const distantRingFar = buildDistantRing(3200, 5600, 10, 72, 23, distantTerrainMaterialFar);
+const distantForest = createDistantForestBand(2600, 380, 41);
+const distantDesertSpires = createDistantSpireBand(2480, 140, 59);
+distantDesertSpires.visible = false;
+scene.add(distantRingNear, distantRingFar, distantForest, distantDesertSpires);
 
 function updateDistantBackdrop() {
   distantRingNear.position.x = car.position.x;
@@ -821,6 +858,9 @@ function updateDistantBackdrop() {
 
   distantForest.position.x = car.position.x;
   distantForest.position.z = car.position.z;
+
+  distantDesertSpires.position.x = car.position.x;
+  distantDesertSpires.position.z = car.position.z;
 
   sky.position.copy(camera.position);
 }
@@ -843,6 +883,15 @@ function sideFromRoad(x, z) {
 
 function terrainHeight(x, z) {
   const side = sideFromRoad(x, z);
+
+  if (currentScenario === "desert") {
+    const broad = fbm(x * 0.0009, z * 0.0009) * 18;
+    const dunes = Math.sin(x * 0.016 + z * 0.006) * 6 + Math.sin(z * 0.022 - x * 0.004) * 3.5;
+    const duneNoise = fbm(x * 0.0042, z * 0.0042) * 14 + fbm(x * 0.012, z * 0.012) * 3.2;
+    const sideRise = Math.pow(THREE.MathUtils.clamp(Math.abs(side) / 120, 0, 1), 1.25) * 18;
+    const shoulderShelf = -smoothstep(12, 84, Math.abs(side)) * 3.5;
+    return broad + dunes + duneNoise + sideRise + shoulderShelf - 10;
+  }
 
   const broad = fbm(x * 0.0012, z * 0.0012) * 40;
   const medium = fbm(x * 0.0060, z * 0.0060) * 10;
@@ -874,7 +923,7 @@ function groundAt(x, z) {
 
 function buildRoadStrip(zStart, zEnd, width, xOffset, yOffset, material) {
   const zLen = zEnd - zStart;
-  const geo = new THREE.PlaneGeometry(width, zLen, 7, 116);
+  const geo = new THREE.PlaneGeometry(width, zLen, 5, 76);
   geo.rotateX(-Math.PI / 2);
 
   const pos = geo.attributes.position;
@@ -988,6 +1037,26 @@ function createRock(x, z, group, rng = Math.random) {
   group.add(rock);
 }
 
+function createCactus(x, z, group, rng = Math.random) {
+  const y = terrainHeight(x, z);
+  const height = 2.1 + rng() * 2.8;
+
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.24, height, 8), cactusMaterial);
+  trunk.position.set(x, y + height * 0.5, z);
+  group.add(trunk);
+
+  const armHeight = height * (0.34 + rng() * 0.12);
+  const armLeft = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, armHeight, 8), cactusMaterial);
+  armLeft.position.set(x - 0.32, y + height * 0.56, z);
+  armLeft.rotation.z = Math.PI * 0.36;
+  group.add(armLeft);
+
+  const armRight = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, armHeight * 0.82, 8), cactusMaterial);
+  armRight.position.set(x + 0.34, y + height * 0.58, z);
+  armRight.rotation.z = -Math.PI * 0.34;
+  group.add(armRight);
+}
+
 function createBarrier(z, side, group) {
   const edge = roadWidth * 0.5 + 0.87;
   const x = roadCenterX(z) + side * edge;
@@ -1018,8 +1087,12 @@ function createWallSegment(z, side, group) {
 }
 
 function createGrassBand(zStart, zEnd, side, chunk, rng) {
-  const baseCount = currentQuality === "low" ? 90 : currentQuality === "medium" ? 160 : 260;
-  const count = Math.max(24, Math.floor(baseCount * densityFactor * scenarioGrassDensity));
+  if (currentScenario === "desert") return;
+
+  const baseCount = currentQuality === "low" ? 72 : currentQuality === "medium" ? 120 : 180;
+  const count = Math.floor(baseCount * densityFactor * scenarioGrassDensity);
+  if (count <= 0) return;
+
   const mesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.9, 1.5), grassBillboardMaterial, count);
   const dummy = new THREE.Object3D();
 
@@ -1045,6 +1118,7 @@ function createChunk(cx, cz) {
   const originX = cx * chunkSize;
   const originZ = cz * chunkSize;
   const rng = createRng(chunkSeed(cx, cz));
+  const isDesert = currentScenario === "desert";
 
   chunk.add(createTerrainChunk(originX, originZ));
 
@@ -1064,12 +1138,13 @@ function createChunk(cx, cz) {
   createGrassBand(zStart, zEnd, -1, chunk, rng);
   createGrassBand(zStart, zEnd, 1, chunk, rng);
 
-  for (let z = zStart; z < zEnd; z += 4.2) {
-    if ((Math.floor(z / 13) & 1) === 0) createBarrier(z, -1, chunk);
-    if ((Math.floor(z / 18) & 1) === 0) createWallSegment(z, 1, chunk);
+  for (let z = zStart; z < zEnd; z += isDesert ? 7.8 : 4.2) {
+    if ((Math.floor(z / (isDesert ? 16 : 13)) & 1) === 0) createBarrier(z, -1, chunk);
+    if (!isDesert && (Math.floor(z / 18) & 1) === 0) createWallSegment(z, 1, chunk);
   }
 
-  const scenicCount = Math.floor((currentQuality === "low" ? 24 : currentQuality === "medium" ? 42 : 62) * densityFactor * scenarioScenicDensity);
+  const scenicBase = isDesert ? (currentQuality === "low" ? 14 : currentQuality === "medium" ? 22 : 32) : (currentQuality === "low" ? 24 : currentQuality === "medium" ? 42 : 62);
+  const scenicCount = Math.floor(scenicBase * densityFactor * scenarioScenicDensity);
   for (let i = 0; i < scenicCount; i += 1) {
     const rx = originX + (rng() - 0.5) * chunkSize;
     const rz = originZ + (rng() - 0.5) * chunkSize;
@@ -1077,12 +1152,15 @@ function createChunk(cx, cz) {
     const dist = Math.abs(side);
     if (dist < roadShoulder + 7) continue;
 
+    if (isDesert) {
+      if (rng() > 0.62) createCactus(rx, rz, chunk, rng);
+      else createRock(rx, rz, chunk, rng);
+      continue;
+    }
+
     if (side < -20) {
-      if (rng() > 0.33) {
-        createTree(rx, rz, chunk, 0.88 + rng() * 0.55, rng);
-      } else {
-        createShrub(rx, rz, chunk, rng);
-      }
+      if (rng() > 0.33) createTree(rx, rz, chunk, 0.88 + rng() * 0.55, rng);
+      else createShrub(rx, rz, chunk, rng);
     } else if (rng() > 0.6) {
       createShrub(rx, rz, chunk, rng);
     } else {
@@ -1090,13 +1168,21 @@ function createChunk(cx, cz) {
     }
   }
 
-  const beltCount = Math.floor((currentQuality === "low" ? 12 : currentQuality === "medium" ? 20 : 30) * densityFactor * scenarioBeltDensity);
+  const beltBase = isDesert ? (currentQuality === "low" ? 8 : currentQuality === "medium" ? 12 : 18) : (currentQuality === "low" ? 12 : currentQuality === "medium" ? 20 : 30);
+  const beltCount = Math.floor(beltBase * densityFactor * scenarioBeltDensity);
   for (let i = 0; i < beltCount; i += 1) {
     const z = zStart + rng() * (zEnd - zStart);
-    const x = roadCenterX(z) - (70 + rng() * 105);
+    const sideDir = rng() > 0.5 ? -1 : 1;
+    const x = roadCenterX(z) + sideDir * (isDesert ? 54 + rng() * 96 : 70 + rng() * 105);
     if (x < originX - chunkSize * 0.5 || x > originX + chunkSize * 0.5) continue;
     if (z < originZ - chunkSize * 0.5 || z > originZ + chunkSize * 0.5) continue;
-    if (rng() > 0.2) createTree(x, z, chunk, 0.72 + rng() * 0.46, rng);
+
+    if (isDesert) {
+      if (rng() > 0.45) createCactus(x, z, chunk, rng);
+      else createRock(x, z, chunk, rng);
+    } else if (rng() > 0.2) {
+      createTree(x, z, chunk, 0.72 + rng() * 0.46, rng);
+    }
   }
 
   scene.add(chunk);
@@ -1347,23 +1433,23 @@ function applyQuality(preset) {
   const dprBase = window.devicePixelRatio || 1;
 
   if (preset === "low") {
-    renderer.setPixelRatio(Math.min(1.0, dprBase));
+    renderer.setPixelRatio(Math.min(0.95, dprBase));
     activeChunkRadius = 1;
-    densityFactor = 0.55;
+    densityFactor = 0.5;
     bloomPass.enabled = false;
-    cloudMaterial.size = 30;
+    cloudMaterial.size = 26;
   } else if (preset === "medium") {
+    renderer.setPixelRatio(Math.min(1.15, dprBase));
+    activeChunkRadius = 2;
+    densityFactor = 0.72;
+    bloomPass.enabled = true;
+    cloudMaterial.size = 30;
+  } else {
     renderer.setPixelRatio(Math.min(1.35, dprBase));
     activeChunkRadius = 2;
-    densityFactor = 0.9;
+    densityFactor = 0.95;
     bloomPass.enabled = true;
-    cloudMaterial.size = 34;
-  } else {
-    renderer.setPixelRatio(Math.min(1.9, dprBase));
-    activeChunkRadius = 3;
-    densityFactor = 1.35;
-    bloomPass.enabled = true;
-    cloudMaterial.size = 37;
+    cloudMaterial.size = 33;
   }
 
   clearChunks();
@@ -1463,3 +1549,5 @@ function animate(now) {
 }
 
 requestAnimationFrame(animate);
+
+
