@@ -646,7 +646,7 @@ const snowTexture = makeCanvasTexture(64, (ctx, s) => {
 });
 
 const snowGeometry = new THREE.BufferGeometry();
-const snowCount = 18000;
+const snowCount = 10000;
 const snowArr = new Float32Array(snowCount * 3);
 const snowSizes = new Float32Array(snowCount);
 for (let i = 0; i < snowCount; i += 1) {
@@ -742,6 +742,8 @@ function applyScenario(name, rebuildWorld = true) {
 
   rainMaterialPoints.color.setHex(next.precip.colorRain);
   rainMaterialPoints.size = next.precip.sizeRain;
+  snowMaterialPoints.color.setHex(next.precip.colorSnow || 0xffffff);
+  snowMaterialPoints.size = (next.precip.sizeSnow || 0.45) * 2.8;
   cloudMaterial.opacity = next.precip.cloudClear;
 
   scene.fog.near = next.fog.clearNear;
@@ -1380,10 +1382,6 @@ function updateWeather(dt) {
   rainMaterialPoints.size = dropSize;
   rainMaterialPoints.opacity = THREE.MathUtils.damp(rainMaterialPoints.opacity, targetDropOpacity, 4.1, dt);
 
-  let curSnowColor = (activeScenario.precip && activeScenario.precip.colorSnow) ? activeScenario.precip.colorSnow : 0xffffff;
-  let curSnowSize = (activeScenario.precip && activeScenario.precip.sizeSnow) ? activeScenario.precip.sizeSnow : 0.45;
-  snowMaterialPoints.color.setHex(curSnowColor);
-  snowMaterialPoints.size = curSnowSize * 5.0;
   snowMaterialPoints.opacity = THREE.MathUtils.damp(snowMaterialPoints.opacity, targetSnowOpacity, 3.5, dt);
 
   cloudMaterial.opacity = THREE.MathUtils.damp(cloudMaterial.opacity, targetCloudOpacity, 2.6, dt);
@@ -1392,41 +1390,41 @@ function updateWeather(dt) {
   scene.fog.color.lerp(fogTint, 0.35);
   roadMaterial.roughness = THREE.MathUtils.damp(roadMaterial.roughness, roadRoughness, 3.2, dt);
 
-  const rp = rain.geometry.attributes.position;
-  for (let i = 0; i < rp.count; i += 1) {
-    const k = i * 3;
-    rp.array[k] += Math.sin(i * 1.7) * dt * windScale;
-    rp.array[k + 1] -= dt * fallSpeed;
-    rp.array[k + 2] += Math.cos(i * 1.2) * dt * windScale * 0.7;
-    if (rp.array[k + 1] < car.position.y - 10) {
-      rp.array[k] = car.position.x + (Math.random() - 0.5) * 320;
-      rp.array[k + 1] = car.position.y + 8 + Math.random() * 118;
-      rp.array[k + 2] = car.position.z + (Math.random() - 0.5) * 320;
+  if (rainMaterialPoints.opacity > 0.01 || targetDropOpacity > 0) {
+    const rp = rain.geometry.attributes.position;
+    for (let i = 0; i < rp.count; i += 1) {
+      const k = i * 3;
+      rp.array[k] += Math.sin(i * 1.7) * dt * windScale;
+      rp.array[k + 1] -= dt * fallSpeed;
+      rp.array[k + 2] += Math.cos(i * 1.2) * dt * windScale * 0.7;
+      if (rp.array[k + 1] < car.position.y - 10) {
+        rp.array[k] = car.position.x + (Math.random() - 0.5) * 320;
+        rp.array[k + 1] = car.position.y + 8 + Math.random() * 118;
+        rp.array[k + 2] = car.position.z + (Math.random() - 0.5) * 320;
+      }
     }
+    rp.needsUpdate = true;
   }
-  rp.needsUpdate = true;
 
-  const sp = snow.geometry.attributes.position;
-  const time = clockTime * 40.0;
-  for (let i = 0; i < sp.count; i += 1) {
-    const k = i * 3;
-    const phase1 = i * 13.5;
-    const phase2 = i * 11.2;
-    const phase3 = i * 7.3;
-    const layerSpeed = 0.6 + (i % 5) * 0.18;
-    const flutterX = Math.sin(phase1 + time * 0.6) * 1.2 + Math.sin(phase3 + time * 0.3) * 0.5;
-    const flutterZ = Math.cos(phase2 + time * 0.45) * 1.1 + Math.cos(phase3 + time * 0.25) * 0.4;
-    const sway = Math.sin(phase2 + time * 0.15) * 0.3;
-    sp.array[k] += (flutterX + windScale * 2.0 + sway) * dt * 3.5;
-    sp.array[k + 1] -= dt * (fallSpeed * layerSpeed);
-    sp.array[k + 2] += (flutterZ + windScale * 1.5) * dt * 3.5;
-    if (sp.array[k + 1] < car.position.y - 8) {
-      sp.array[k] = car.position.x + (Math.random() - 0.5) * 400;
-      sp.array[k + 1] = car.position.y + 10 + Math.random() * 140;
-      sp.array[k + 2] = car.position.z + (Math.random() - 0.5) * 400;
+  if (snowMaterialPoints.opacity > 0.01 || targetSnowOpacity > 0) {
+    const sp = snow.geometry.attributes.position;
+    const time = clockTime * 40.0;
+    for (let i = 0; i < sp.count; i += 1) {
+      const k = i * 3;
+      const phase = i * 13.5;
+      const layerSpeed = 0.6 + (i % 5) * 0.18;
+      const flutter = Math.sin(phase + time * 0.5);
+      sp.array[k] += (flutter * 1.4 + windScale * 2.0) * dt * 3.5;
+      sp.array[k + 1] -= dt * (fallSpeed * layerSpeed);
+      sp.array[k + 2] += (Math.cos(phase + time * 0.35) * 1.2 + windScale * 1.5) * dt * 3.5;
+      if (sp.array[k + 1] < car.position.y - 8) {
+        sp.array[k] = car.position.x + (Math.random() - 0.5) * 400;
+        sp.array[k + 1] = car.position.y + 10 + Math.random() * 140;
+        sp.array[k + 2] = car.position.z + (Math.random() - 0.5) * 400;
+      }
     }
+    sp.needsUpdate = true;
   }
-  sp.needsUpdate = true;
 
   const cp = clouds.geometry.attributes.position;
   const cloudDrift = weather === "rain" ? 13 : weather === "snow" ? 7 : currentScenario === "desert" ? 10 : 8;
