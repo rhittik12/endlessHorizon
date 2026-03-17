@@ -104,6 +104,26 @@ const grassTexture = makeCanvasTexture(1024, (ctx, s) => {
 });
 grassTexture.repeat.set(26, 26);
 
+const snowGroundTexture = makeCanvasTexture(1024, (ctx, s) => {
+  const grad = ctx.createLinearGradient(0, 0, 0, s);
+  grad.addColorStop(0, "#e8edf4");
+  grad.addColorStop(1, "#dce3ee");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, s, s);
+
+  for (let i = 0; i < 18000; i += 1) {
+    const light = 210 + Math.random() * 45;
+    ctx.fillStyle = `rgba(${light},${light + 2},${light + 6},${0.06 + Math.random() * 0.1})`;
+    ctx.fillRect(Math.random() * s, Math.random() * s, 1 + Math.random() * 3, 1 + Math.random() * 3);
+  }
+
+  for (let i = 0; i < 4000; i += 1) {
+    ctx.fillStyle = `rgba(195,205,220,${0.03 + Math.random() * 0.06})`;
+    ctx.fillRect(Math.random() * s, Math.random() * s, 2 + Math.random() * 5, 2 + Math.random() * 5);
+  }
+});
+snowGroundTexture.repeat.set(26, 26);
+
 const stoneTexture = makeCanvasTexture(512, (ctx, s) => {
   ctx.fillStyle = "#7f786e";
   ctx.fillRect(0, 0, s, s);
@@ -340,70 +360,70 @@ const SCENARIO_PRESETS = {
     timeStart: 0.3,
     timeRate: 0.68,
     speedScale: 0.74,
-    density: { grass: 0.35, scenic: 0.8, belt: 0.7 },
-    sky: { turbidity: 6.4, rayleigh: 0.92, mieCoefficient: 0.0032, mieDirectionalG: 0.67 },
+    density: { grass: 0, scenic: 0.7, belt: 0.6 },
+    sky: { turbidity: 7.5, rayleigh: 0.85, mieCoefficient: 0.004, mieDirectionalG: 0.72 },
     palette: {
-      valley: 0xdce4ed,
-      hill: 0xf2f6fa,
-      nearRoad: 0xd6dee7,
-      shadow: 0xb8c7d5,
-      foliage: 0x5e6f68,
-      trunk: 0x6a5b4d,
-      stone: 0xc7ced8,
-      barrier: 0xd8e0e8,
-      shoulder: 0xc3c9d2,
-      lines: 0xf8fbff,
-      distantNear: 0xcdd7e4,
-      distantFar: 0xe3eaf4,
-      distantForest: 0x6b7972,
-      roadTint: 0xeff3f8,
-      grassTint: 0xf2f8ff,
+      valley: 0xe8eef5,
+      hill: 0xf5f8fc,
+      nearRoad: 0xe0e7f0,
+      shadow: 0xc8d4e2,
+      foliage: 0xb8c4be,
+      trunk: 0x8a8078,
+      stone: 0xd8dee8,
+      barrier: 0xe2e8f0,
+      shoulder: 0xd5dce6,
+      lines: 0xfafcff,
+      distantNear: 0xdbe4ef,
+      distantFar: 0xecf1f8,
+      distantForest: 0xb0b8b4,
+      roadTint: 0xe0e6ee,
+      grassTint: 0xf0f5fc,
     },
     fog: {
       night: 0x2a3344,
-      day: 0xbecddc,
-      clear: 0xc8d5e2,
-      mist: 0xc0cfdd,
+      day: 0xc8d6e4,
+      clear: 0xd0dce8,
+      mist: 0xc8d8e6,
       rain: 0xb4c2cf,
-      snow: 0xd7e2ee,
-      clearNear: 110,
-      clearFar: 1320,
-      mistNear: 74,
-      mistFar: 980,
+      snow: 0xdce8f2,
+      clearNear: 90,
+      clearFar: 1100,
+      mistNear: 60,
+      mistFar: 850,
       rainNear: 70,
       rainFar: 920,
-      snowNear: 70,
-      snowFar: 930,
+      snowNear: 50,
+      snowFar: 750,
     },
     lighting: {
       sunNight: 0.02,
-      sunDay: 0.4,
+      sunDay: 0.35,
       hemiNight: 0.12,
-      hemiDay: 0.4,
-      ambientNight: 0.07,
-      ambientDay: 0.15,
+      hemiDay: 0.42,
+      ambientNight: 0.08,
+      ambientDay: 0.18,
       sunNightColor: 0x94a8d2,
-      sunDayColor: 0xe9f2fa,
+      sunDayColor: 0xe4ecf6,
       exposureNight: 0.26,
-      exposureDay: 0.42,
+      exposureDay: 0.40,
       minExposure: 0.18,
-      glareFactor: 0.58,
-      bloomScale: 0.55,
+      glareFactor: 0.50,
+      bloomScale: 0.6,
     },
     precip: {
       rainOpacity: 0,
-      snowOpacity: 0.78,
+      snowOpacity: 0.92,
       sizeRain: 0.2,
-      sizeSnow: 0.4,
+      sizeSnow: 0.45,
       colorRain: 0xc8ddeb,
-      colorSnow: 0xf4f9ff,
+      colorSnow: 0xf8fcff,
       rainFall: 58,
-      snowFall: 16,
+      snowFall: 12,
       windRain: 0.26,
-      windSnow: 1.2,
-      cloudClear: 0.44,
-      cloudStorm: 0.5,
-      cloudSnow: 0.56,
+      windSnow: 0.9,
+      cloudClear: 0.52,
+      cloudStorm: 0.55,
+      cloudSnow: 0.62,
     },
   },
   desert: {
@@ -611,6 +631,37 @@ const rain = new THREE.Points(rainGeometry, rainMaterialPoints);
 rain.frustumCulled = false;
 scene.add(rain);
 
+
+const snowTexture = makeCanvasTexture(64, (ctx, s) => {
+  const center = s / 2;
+  const radius = s / 2;
+  const grad = ctx.createRadialGradient(center, center, 0, center, center, radius);
+  grad.addColorStop(0, "rgba(255, 255, 255, 1)");
+  grad.addColorStop(0.18, "rgba(250, 252, 255, 0.95)");
+  grad.addColorStop(0.45, "rgba(240, 246, 255, 0.6)");
+  grad.addColorStop(0.75, "rgba(230, 240, 255, 0.2)");
+  grad.addColorStop(1, "rgba(220, 235, 255, 0)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, s, s);
+});
+
+const snowGeometry = new THREE.BufferGeometry();
+const snowCount = 18000;
+const snowArr = new Float32Array(snowCount * 3);
+const snowSizes = new Float32Array(snowCount);
+for (let i = 0; i < snowCount; i += 1) {
+  snowArr[i * 3] = (Math.random() - 0.5) * 400;
+  snowArr[i * 3 + 1] = Math.random() * 140;
+  snowArr[i * 3 + 2] = (Math.random() - 0.5) * 400;
+  snowSizes[i] = 0.5 + Math.random() * 1.5;
+}
+snowGeometry.setAttribute('position', new THREE.BufferAttribute(snowArr, 3));
+snowGeometry.setAttribute('size', new THREE.BufferAttribute(snowSizes, 1));
+const snowMaterialPoints = new THREE.PointsMaterial({ size: 1.8, map: snowTexture, transparent: true, opacity: 0, depthWrite: false, blending: THREE.NormalBlending, sizeAttenuation: true, color: 0xffffff });
+const snow = new THREE.Points(snowGeometry, snowMaterialPoints);
+snow.frustumCulled = false;
+scene.add(snow);
+
 const distantTerrainMaterialNear = new THREE.MeshStandardMaterial({
   color: 0x8ea076,
   roughness: 1,
@@ -680,6 +731,8 @@ function applyScenario(name, rebuildWorld = true) {
   foliageMaterial.color.setHex(next.palette.foliage);
   cactusMaterial.color.setHex(currentScenario === "desert" ? 0x6f8751 : 0x6f8751);
   grassBillboardMaterial.color.setHex(next.palette.grassTint);
+  terrainMaterial.map = currentScenario === "snow" ? snowGroundTexture : grassTexture;
+  terrainMaterial.needsUpdate = true;
   distantTerrainMaterialNear.color.setHex(next.palette.distantNear);
   distantTerrainMaterialFar.color.setHex(next.palette.distantFar);
   distantForestMaterial.color.setHex(next.palette.distantForest);
@@ -1281,6 +1334,7 @@ function updateWeather(dt) {
   const precip = activeScenario.precip;
 
   let targetDropOpacity = 0;
+  let targetSnowOpacity = 0;
   let targetCloudOpacity = precip.cloudClear;
   let fogNear = fog.clearNear;
   let fogFar = fog.clearFar;
@@ -1303,14 +1357,12 @@ function updateWeather(dt) {
     fallSpeed = precip.rainFall;
     windScale = precip.windRain;
   } else if (weather === "snow") {
-    targetDropOpacity = precip.snowOpacity;
+    targetSnowOpacity = precip.snowOpacity;
     targetCloudOpacity = precip.cloudSnow;
     fogNear = fog.snowNear;
     fogFar = fog.snowFar;
     fogTint = scenarioColors.fogSnow;
     roadRoughness = 0.9;
-    dropColor = precip.colorSnow;
-    dropSize = precip.sizeSnow;
     fallSpeed = precip.snowFall;
     windScale = precip.windSnow;
   } else if (weather === "mist") {
@@ -1327,6 +1379,13 @@ function updateWeather(dt) {
   rainMaterialPoints.color.setHex(dropColor);
   rainMaterialPoints.size = dropSize;
   rainMaterialPoints.opacity = THREE.MathUtils.damp(rainMaterialPoints.opacity, targetDropOpacity, 4.1, dt);
+
+  let curSnowColor = (activeScenario.precip && activeScenario.precip.colorSnow) ? activeScenario.precip.colorSnow : 0xffffff;
+  let curSnowSize = (activeScenario.precip && activeScenario.precip.sizeSnow) ? activeScenario.precip.sizeSnow : 0.45;
+  snowMaterialPoints.color.setHex(curSnowColor);
+  snowMaterialPoints.size = curSnowSize * 5.0;
+  snowMaterialPoints.opacity = THREE.MathUtils.damp(snowMaterialPoints.opacity, targetSnowOpacity, 3.5, dt);
+
   cloudMaterial.opacity = THREE.MathUtils.damp(cloudMaterial.opacity, targetCloudOpacity, 2.6, dt);
   scene.fog.near = fogNear;
   scene.fog.far = fogFar;
@@ -1346,6 +1405,28 @@ function updateWeather(dt) {
     }
   }
   rp.needsUpdate = true;
+
+  const sp = snow.geometry.attributes.position;
+  const time = clockTime * 40.0;
+  for (let i = 0; i < sp.count; i += 1) {
+    const k = i * 3;
+    const phase1 = i * 13.5;
+    const phase2 = i * 11.2;
+    const phase3 = i * 7.3;
+    const layerSpeed = 0.6 + (i % 5) * 0.18;
+    const flutterX = Math.sin(phase1 + time * 0.6) * 1.2 + Math.sin(phase3 + time * 0.3) * 0.5;
+    const flutterZ = Math.cos(phase2 + time * 0.45) * 1.1 + Math.cos(phase3 + time * 0.25) * 0.4;
+    const sway = Math.sin(phase2 + time * 0.15) * 0.3;
+    sp.array[k] += (flutterX + windScale * 2.0 + sway) * dt * 3.5;
+    sp.array[k + 1] -= dt * (fallSpeed * layerSpeed);
+    sp.array[k + 2] += (flutterZ + windScale * 1.5) * dt * 3.5;
+    if (sp.array[k + 1] < car.position.y - 8) {
+      sp.array[k] = car.position.x + (Math.random() - 0.5) * 400;
+      sp.array[k + 1] = car.position.y + 10 + Math.random() * 140;
+      sp.array[k + 2] = car.position.z + (Math.random() - 0.5) * 400;
+    }
+  }
+  sp.needsUpdate = true;
 
   const cp = clouds.geometry.attributes.position;
   const cloudDrift = weather === "rain" ? 13 : weather === "snow" ? 7 : currentScenario === "desert" ? 10 : 8;
