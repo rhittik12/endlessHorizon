@@ -562,8 +562,6 @@ const glassPaint = new THREE.MeshPhysicalMaterial({
   roughness: 0.05,
   transmission: 0.74,
   thickness: 0.16,
-  transparent: true,
-  opacity: 0.95,
   ior: 1.47,
   reflectivity: 0.95,
 });
