@@ -13,12 +13,12 @@ const touchButtons = Array.from(document.querySelectorAll(".touch-controls butto
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.7;
+renderer.toneMappingExposure = 0.82;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0xbdd0da, 0.00055);
+scene.fog = new THREE.FogExp2(0xc7d7e2, 0.00068);
 
 const camera = new THREE.PerspectiveCamera(63, window.innerWidth / window.innerHeight, 0.1, 3600);
 
@@ -27,12 +27,12 @@ composer.addPass(new RenderPass(scene, camera));
 const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.05, 0.25, 1.0);
 composer.addPass(bloomPass);
 
-const hemi = new THREE.HemisphereLight(0xe0efff, 0x5a6447, 0.95);
+const hemi = new THREE.HemisphereLight(0xe0efff, 0x738164, 1.08);
 scene.add(hemi);
 
 const sun = new THREE.DirectionalLight(0xfff2d5, 1.25);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(1536, 1536);
 sun.shadow.camera.near = 8;
 sun.shadow.camera.far = 850;
 sun.shadow.camera.left = -160;
@@ -40,9 +40,11 @@ sun.shadow.camera.right = 160;
 sun.shadow.camera.top = 160;
 sun.shadow.camera.bottom = -160;
 sun.shadow.bias = -0.00006;
+sun.shadow.normalBias = 0.02;
+sun.shadow.radius = 6;
 scene.add(sun);
 
-const ambient = new THREE.AmbientLight(0xbfcbd7, 0.22);
+const ambient = new THREE.AmbientLight(0xd9e3eb, 0.44);
 scene.add(ambient);
 
 const sky = new Sky();
@@ -50,10 +52,10 @@ sky.scale.setScalar(9000);
 scene.add(sky);
 
 const skyUniforms = sky.material.uniforms;
-skyUniforms.turbidity.value = 3.9;
-skyUniforms.rayleigh.value = 1.08;
-skyUniforms.mieCoefficient.value = 0.0009;
-skyUniforms.mieDirectionalG.value = 0.62;
+skyUniforms.turbidity.value = 5.2;
+skyUniforms.rayleigh.value = 1.2;
+skyUniforms.mieCoefficient.value = 0.0012;
+skyUniforms.mieDirectionalG.value = 0.67;
 const skySunPosition = new THREE.Vector3();
 
 function makeCanvasTexture(size, drawFn, wrap = true) {
@@ -95,21 +97,21 @@ roadTexture.repeat.set(1.6, 88);
 
 const grassTexture = makeCanvasTexture(1024, (ctx, s) => {
   const grad = ctx.createLinearGradient(0, 0, 0, s);
-  grad.addColorStop(0, "#c0c47f");
-  grad.addColorStop(1, "#7f9567");
+  grad.addColorStop(0, "#d4d79a");
+  grad.addColorStop(1, "#93ab72");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, s, s);
 
   for (let i = 0; i < 21000; i += 1) {
-    const hue = 62 + Math.random() * 30;
-    const sat = 20 + Math.random() * 36;
-    const light = 30 + Math.random() * 50;
-    ctx.fillStyle = `hsla(${hue},${sat}%,${light}%,${0.08 + Math.random() * 0.11})`;
+    const hue = 68 + Math.random() * 24;
+    const sat = 22 + Math.random() * 28;
+    const light = 40 + Math.random() * 42;
+    ctx.fillStyle = `hsla(${hue},${sat}%,${light}%,${0.07 + Math.random() * 0.1})`;
     ctx.fillRect(Math.random() * s, Math.random() * s, 1 + Math.random() * 2.5, 1 + Math.random() * 2.5);
   }
 
   for (let i = 0; i < 6000; i += 1) {
-    ctx.fillStyle = "rgba(92,116,76,0.06)";
+    ctx.fillStyle = "rgba(130,152,98,0.05)";
     ctx.fillRect(Math.random() * s, Math.random() * s, 2.2, 2.2);
   }
 });
@@ -196,6 +198,7 @@ const terrainMaterial = new THREE.MeshStandardMaterial({
   roughness: 0.97,
   metalness: 0,
   vertexColors: true,
+  dithering: true,
 });
 const barrierMaterial = new THREE.MeshStandardMaterial({ color: 0xc9d0d7, roughness: 0.54, metalness: 0.18 });
 const stoneMaterial = new THREE.MeshStandardMaterial({ color: 0xd4cdc0, map: stoneTexture, roughness: 0.96, metalness: 0.01 });
@@ -211,6 +214,8 @@ const grassBillboardMaterial = new THREE.MeshStandardMaterial({
   side: THREE.DoubleSide,
   roughness: 1,
   metalness: 0,
+  vertexColors: true,
+  dithering: true,
 });
 
 const input = { throttle: false, brake: false, left: false, right: false, boost: false };
@@ -219,19 +224,26 @@ const reusableVecA = new THREE.Vector3();
 const reusableVecB = new THREE.Vector3();
 const reusableVecC = new THREE.Vector3();
 const worldUp = new THREE.Vector3(0, 1, 0);
+const reusableColorA = new THREE.Color();
+const reusableColorB = new THREE.Color();
+const reusableColorC = new THREE.Color();
 
 const scenarioColors = {
   fogNight: new THREE.Color(0x1c2433),
-  fogDay: new THREE.Color(0x94a8b2),
-  fogClear: new THREE.Color(0x94a8b2),
+  fogDay: new THREE.Color(0xb6c7d2),
+  fogClear: new THREE.Color(0xb8c9d4),
   fogMist: new THREE.Color(0x83919d),
   fogRain: new THREE.Color(0x7d8c98),
   fogSnow: new THREE.Color(0xdce6f2),
-  valley: new THREE.Color(0x76915f),
-  hill: new THREE.Color(0xbec07a),
-  nearRoad: new THREE.Color(0xaa9d79),
-  shadow: new THREE.Color(0x627952),
+  valley: new THREE.Color(0x90a972),
+  hill: new THREE.Color(0xd0cd8b),
+  nearRoad: new THREE.Color(0xb7a885),
+  shadow: new THREE.Color(0x7f9469),
+  distantNear: new THREE.Color(0x8ea076),
+  distantFar: new THREE.Color(0xa4af8a),
+  distantForest: new THREE.Color(0x445a3b),
 };
+const atmosphereFogColor = new THREE.Color(0xc7d7e2);
 
 const SCENARIO_PRESETS = {
   sunny: {
@@ -241,28 +253,28 @@ const SCENARIO_PRESETS = {
     timeRate: 1,
     speedScale: 0.9,
     density: { grass: 1.05, scenic: 1.0, belt: 1.0 },
-    sky: { turbidity: 3.8, rayleigh: 1.1, mieCoefficient: 0.00085, mieDirectionalG: 0.6 },
+    sky: { turbidity: 5.2, rayleigh: 1.2, mieCoefficient: 0.0012, mieDirectionalG: 0.67 },
     palette: {
-      valley: 0x76915f,
-      hill: 0xbec07a,
-      nearRoad: 0xaa9d79,
-      shadow: 0x627952,
+      valley: 0x90a972,
+      hill: 0xd0cd8b,
+      nearRoad: 0xb7a885,
+      shadow: 0x7f9469,
       foliage: 0x5f7e4d,
       trunk: 0x6d4f30,
       stone: 0xd4cdc0,
       barrier: 0xc7ced5,
       shoulder: 0xa89f88,
       lines: 0xf4f1e8,
-      distantNear: 0x8ea076,
-      distantFar: 0xa4af8a,
-      distantForest: 0x445a3b,
+      distantNear: 0xa7b68a,
+      distantFar: 0xc3cda6,
+      distantForest: 0x60784f,
       roadTint: 0xffffff,
-      grassTint: 0xffffff,
+      grassTint: 0xeef6da,
     },
     fog: {
       night: 0x1c2433,
-      day: 0x94a8b2,
-      clear: 0x93a9b9,
+      day: 0xb6c7d2,
+      clear: 0xb8c9d4,
       mist: 0x8f9ca7,
       rain: 0x7d8c98,
       snow: 0xcdd8e6,
@@ -277,18 +289,18 @@ const SCENARIO_PRESETS = {
     },
     lighting: {
       sunNight: 0.03,
-      sunDay: 0.56,
-      hemiNight: 0.15,
-      hemiDay: 0.48,
-      ambientNight: 0.07,
-      ambientDay: 0.16,
+      sunDay: 0.46,
+      hemiNight: 0.18,
+      hemiDay: 0.62,
+      ambientNight: 0.1,
+      ambientDay: 0.25,
       sunNightColor: 0x93abd8,
-      sunDayColor: 0xffefcf,
-      exposureNight: 0.3,
-      exposureDay: 0.54,
-      minExposure: 0.2,
-      glareFactor: 0.92,
-      bloomScale: 1,
+      sunDayColor: 0xfff3da,
+      exposureNight: 0.34,
+      exposureDay: 0.64,
+      minExposure: 0.3,
+      glareFactor: 0.45,
+      bloomScale: 0.72,
     },
     precip: {
       rainOpacity: 0,
@@ -714,7 +726,10 @@ const distantTerrainMaterialNear = new THREE.MeshStandardMaterial({
   color: 0x8ea076,
   roughness: 0.98,
   metalness: 0,
+  transparent: true,
+  opacity: 0.94,
   fog: true,
+  dithering: true,
 });
 const distantTerrainMaterialFar = new THREE.MeshStandardMaterial({
   color: 0xa4af8a,
@@ -723,6 +738,7 @@ const distantTerrainMaterialFar = new THREE.MeshStandardMaterial({
   transparent: true,
   opacity: 0.84,
   fog: true,
+  dithering: true,
 });
 const distantForestMaterial = new THREE.MeshStandardMaterial({
   color: 0x445a3b,
@@ -731,6 +747,7 @@ const distantForestMaterial = new THREE.MeshStandardMaterial({
   transparent: true,
   opacity: 0.88,
   fog: true,
+  dithering: true,
 });
 const distantDesertSpireMaterial = new THREE.MeshStandardMaterial({
   color: 0xb8925c,
@@ -773,6 +790,9 @@ function applyScenario(name, rebuildWorld = true) {
   scenarioColors.hill.setHex(next.palette.hill);
   scenarioColors.nearRoad.setHex(next.palette.nearRoad);
   scenarioColors.shadow.setHex(next.palette.shadow);
+  scenarioColors.distantNear.setHex(next.palette.distantNear);
+  scenarioColors.distantFar.setHex(next.palette.distantFar);
+  scenarioColors.distantForest.setHex(next.palette.distantForest);
 
   roadMaterial.color.setHex(next.palette.roadTint);
   shoulderMaterial.color.setHex(next.palette.shoulder);
@@ -785,9 +805,12 @@ function applyScenario(name, rebuildWorld = true) {
   grassBillboardMaterial.color.setHex(next.palette.grassTint);
   terrainMaterial.map = currentScenario === "snow" ? snowGroundTexture : grassTexture;
   terrainMaterial.needsUpdate = true;
-  distantTerrainMaterialNear.color.setHex(next.palette.distantNear);
-  distantTerrainMaterialFar.color.setHex(next.palette.distantFar);
-  distantForestMaterial.color.setHex(next.palette.distantForest);
+  distantTerrainMaterialNear.color.copy(scenarioColors.distantNear);
+  distantTerrainMaterialFar.color.copy(scenarioColors.distantFar);
+  distantForestMaterial.color.copy(scenarioColors.distantForest);
+  distantTerrainMaterialNear.opacity = 0.94;
+  distantTerrainMaterialFar.opacity = 0.84;
+  distantForestMaterial.opacity = 0.88;
   distantDesertSpireMaterial.color.setHex(currentScenario === "desert" ? 0xb8925c : next.palette.distantFar);
   distantForest.visible = currentScenario !== "desert";
   distantDesertSpires.visible = currentScenario === "desert";
@@ -799,7 +822,8 @@ function applyScenario(name, rebuildWorld = true) {
   cloudMaterial.opacity = next.precip.cloudClear;
 
   scene.fog.color.copy(scenarioColors.fogClear);
-  scene.fog.density = THREE.MathUtils.clamp(0.58 / Math.max(next.fog.clearFar - next.fog.clearNear, 280), 0.00022, 0.0022);
+  atmosphereFogColor.copy(scenarioColors.fogClear);
+  scene.fog.density = THREE.MathUtils.clamp(0.96 / Math.max(next.fog.clearFar - next.fog.clearNear, 280), 0.00036, 0.0029);
 
   if (rebuildWorld) {
     clearChunks();
@@ -1083,18 +1107,30 @@ function createTerrainChunk(originX, originZ) {
 
     const side = sideFromRoad(wx, wz);
     const roadDist = Math.abs(side);
-    const hill = THREE.MathUtils.clamp((y + 20) / 90, 0, 1);
-    const nearRoad = 1 - smoothstep(roadWidth * 0.75, roadShoulder + 22, roadDist);
-    const patchNoise = fbm(wx * 0.022, wz * 0.022);
-    const slopeBias = THREE.MathUtils.clamp((side + 15) / 130, 0, 1);
-    const valleyBias = THREE.MathUtils.clamp((-side + 20) / 160, 0, 1);
-    const shade = THREE.MathUtils.clamp(0.44 + (fbm(wx * 0.012, wz * 0.012) - 0.5) * 0.56, 0, 1);
+    const hill = smoothstep(-14, 54, y);
+    const nearRoad = 1 - smoothstep(roadWidth * 0.72, roadShoulder + 24, roadDist);
+    const macroNoise = fbm(wx * 0.0065, wz * 0.0065);
+    const patchNoise = fbm(wx * 0.018, wz * 0.018);
+    const tintNoise = smoothNoise(wx * 0.045 + 17.3, wz * 0.045 - 11.8);
+    const sampleOffset = 6;
+    const dx = groundAt(wx + sampleOffset, wz) - groundAt(wx - sampleOffset, wz);
+    const dz = groundAt(wx, wz + sampleOffset) - groundAt(wx, wz - sampleOffset);
+    const slope = THREE.MathUtils.clamp(Math.hypot(dx, dz) / 7.5, 0, 1);
+    const slopeBias = THREE.MathUtils.clamp((side + 18) / 150, 0, 1);
+    const valleyBias = THREE.MathUtils.clamp((-side + 24) / 180, 0, 1);
+    const shade = THREE.MathUtils.clamp(0.62 + (macroNoise - 0.5) * 0.18 - slope * 0.16, 0, 1);
 
     color
       .copy(scenarioColors.valley)
-      .lerp(scenarioColors.hill, hill * 0.62 + slopeBias * 0.4 + patchNoise * 0.15)
-      .lerp(scenarioColors.nearRoad, nearRoad * 0.38)
-      .lerp(scenarioColors.shadow, valleyBias * (1 - shade) * 0.42);
+      .lerp(scenarioColors.hill, hill * 0.46 + slopeBias * 0.12 + patchNoise * 0.12)
+      .lerp(scenarioColors.nearRoad, nearRoad * 0.26)
+      .lerp(scenarioColors.shadow, valleyBias * 0.12 + slope * 0.08);
+
+    color.offsetHSL(
+      (macroNoise - 0.5) * 0.025,
+      (tintNoise - 0.5) * 0.08,
+      (shade - 0.5) * 0.14 + (patchNoise - 0.5) * 0.05
+    );
 
     colors[i * 3] = color.r;
     colors[i * 3 + 1] = color.g;
@@ -1203,6 +1239,7 @@ function createGrassBand(zStart, zEnd, side, chunk, rng) {
 
   const mesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.9, 1.5), grassBillboardMaterial, count);
   const dummy = new THREE.Object3D();
+  const tint = new THREE.Color();
 
   for (let i = 0; i < count; i += 1) {
     const z = zStart + rng() * (zEnd - zStart);
@@ -1215,9 +1252,16 @@ function createGrassBand(zStart, zEnd, side, chunk, rng) {
     dummy.scale.set(s, s * (0.9 + rng() * 0.7), s);
     dummy.updateMatrix();
     mesh.setMatrixAt(i, dummy.matrix);
+
+    const dryNoise = smoothNoise(x * 0.035 + 9.2, z * 0.035 - 4.6);
+    const lushNoise = fbm(x * 0.02 - 6.4, z * 0.02 + 12.8);
+    const tintLightness = THREE.MathUtils.clamp(0.76 + (lushNoise - dryNoise) * 0.08, 0.68, 0.84);
+    tint.setHSL(0.24 + (lushNoise - 0.5) * 0.035, 0.2 + dryNoise * 0.08, tintLightness);
+    mesh.setColorAt(i, tint);
   }
 
   mesh.instanceMatrix.needsUpdate = true;
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   chunk.add(mesh);
 }
 
@@ -1349,28 +1393,30 @@ function updateLighting(dt) {
   skySunPosition.setFromSphericalCoords(1, phi, t);
   skyUniforms.sunPosition.value.copy(skySunPosition);
 
-  const weatherHaze = weather === "rain" ? 1.0 : weather === "snow" ? 0.82 : currentScenario === "desert" ? 0.62 : 0.35;
-  skyUniforms.rayleigh.value = THREE.MathUtils.damp(skyUniforms.rayleigh.value, activeScenario.sky.rayleigh * (0.65 + day * 0.45), 3.2, dt);
-  skyUniforms.mieCoefficient.value = THREE.MathUtils.damp(skyUniforms.mieCoefficient.value, activeScenario.sky.mieCoefficient + weatherHaze * 0.0009, 3.2, dt);
-  skyUniforms.turbidity.value = THREE.MathUtils.damp(skyUniforms.turbidity.value, activeScenario.sky.turbidity + weatherHaze * 1.8, 2.4, dt);
+  const weatherHaze = weather === "rain" ? 0.85 : weather === "snow" ? 0.72 : currentScenario === "desert" ? 0.58 : 0.48;
+  skyUniforms.rayleigh.value = THREE.MathUtils.damp(skyUniforms.rayleigh.value, activeScenario.sky.rayleigh * (0.72 + day * 0.34), 2.6, dt);
+  skyUniforms.mieCoefficient.value = THREE.MathUtils.damp(skyUniforms.mieCoefficient.value, activeScenario.sky.mieCoefficient + weatherHaze * 0.00072, 2.6, dt);
+  skyUniforms.turbidity.value = THREE.MathUtils.damp(skyUniforms.turbidity.value, activeScenario.sky.turbidity + weatherHaze * 1.42, 2.2, dt);
 
   const light = activeScenario.lighting;
   sun.position.copy(skySunPosition).multiplyScalar(540);
-  sun.intensity = THREE.MathUtils.lerp(light.sunNight, light.sunDay, day);
+  sun.intensity = THREE.MathUtils.lerp(light.sunNight, light.sunDay * 0.96, day);
   sun.color.set(day < 0.2 ? light.sunNightColor : light.sunDayColor);
-  hemi.intensity = THREE.MathUtils.lerp(light.hemiNight, light.hemiDay, day);
-  ambient.intensity = THREE.MathUtils.lerp(light.ambientNight, light.ambientDay, day);
+  hemi.intensity = THREE.MathUtils.lerp(light.hemiNight + 0.06, light.hemiDay + 0.14, day);
+  ambient.intensity = THREE.MathUtils.lerp(light.ambientNight + 0.08, light.ambientDay + 0.14, day);
 
-  scene.fog.color.copy(scenarioColors.fogNight).lerp(scenarioColors.fogDay, day);
+  atmosphereFogColor.copy(scenarioColors.fogNight).lerp(scenarioColors.fogDay, day);
+  reusableColorA.copy(atmosphereFogColor).lerp(scenarioColors.fogClear, 0.16 + day * 0.18);
+  scene.fog.color.copy(reusableColorA);
 
   const baseExposure = THREE.MathUtils.lerp(light.exposureNight, light.exposureDay, day);
   reusableVecA.set(Math.sin(yaw), 0, Math.cos(yaw)).normalize();
   reusableVecB.copy(sun.position).normalize();
-  const glare = Math.pow(Math.max(0, reusableVecA.dot(reusableVecB)), 2.4);
-  renderer.toneMappingExposure = Math.max(light.minExposure, baseExposure * (1 - glare * light.glareFactor));
+  const glare = Math.pow(Math.max(0, reusableVecA.dot(reusableVecB)), 2.6);
+  renderer.toneMappingExposure = Math.max(light.minExposure + 0.04, baseExposure * (1 - glare * light.glareFactor * 0.58));
 
-  const bloomBase = currentQuality === "low" ? 0.0 : currentQuality === "medium" ? 0.018 : 0.032;
-  bloomPass.strength = THREE.MathUtils.lerp(bloomBase * 0.16, bloomBase * 0.42, day) * (1 - glare * 0.98) * light.bloomScale;
+  const bloomBase = currentQuality === "low" ? 0.0 : currentQuality === "medium" ? 0.012 : 0.022;
+  bloomPass.strength = THREE.MathUtils.lerp(bloomBase * 0.12, bloomBase * 0.28, day) * (1 - glare * 0.72) * light.bloomScale;
 
   const isNight = day < 0.24;
   const targetIntensity = isNight ? 180 : 0;
@@ -1449,16 +1495,27 @@ function updateWeather(dt) {
   cloudMaterial.opacity = THREE.MathUtils.damp(cloudMaterial.opacity, targetCloudOpacity, 2.6, dt);
   scene.fog.density = THREE.MathUtils.damp(
     scene.fog.density,
-    THREE.MathUtils.clamp(0.62 / Math.max(fogFar - fogNear, 240), 0.00022, 0.0026),
+    THREE.MathUtils.clamp(1.06 / Math.max(fogFar - fogNear, 220), 0.00038, 0.0031),
     3.1,
     dt
   );
-  scene.fog.color.lerp(fogTint, 0.35);
+  reusableColorB.copy(atmosphereFogColor).lerp(
+    fogTint,
+    weather === "mist" ? 0.58 : weather === "rain" ? 0.52 : weather === "snow" ? 0.5 : 0.36
+  );
+  scene.fog.color.lerp(reusableColorB, 0.25);
   roadMaterial.roughness = THREE.MathUtils.damp(roadMaterial.roughness, roadRoughness, 3.2, dt);
 
-  const haze = THREE.MathUtils.clamp(scene.fog.density / 0.0026, 0, 1);
-  distantTerrainMaterialFar.opacity = THREE.MathUtils.lerp(0.9, 0.62, haze);
-  distantForestMaterial.opacity = THREE.MathUtils.lerp(0.94, 0.68, haze);
+  const haze = THREE.MathUtils.clamp((scene.fog.density - 0.00035) / 0.0026, 0, 1);
+  distantTerrainMaterialNear.opacity = THREE.MathUtils.lerp(0.94, 0.72, haze);
+  distantTerrainMaterialFar.opacity = THREE.MathUtils.lerp(0.84, 0.48, haze);
+  distantForestMaterial.opacity = THREE.MathUtils.lerp(0.88, 0.58, haze);
+  reusableColorC.copy(scenarioColors.distantNear).lerp(scene.fog.color, 0.18 + haze * 0.3);
+  distantTerrainMaterialNear.color.copy(reusableColorC);
+  reusableColorC.copy(scenarioColors.distantFar).lerp(scene.fog.color, 0.32 + haze * 0.42);
+  distantTerrainMaterialFar.color.copy(reusableColorC);
+  reusableColorC.copy(scenarioColors.distantForest).lerp(scene.fog.color, 0.14 + haze * 0.24);
+  distantForestMaterial.color.copy(reusableColorC);
 
   if (rainMaterialPoints.opacity > 0.01 || targetDropOpacity > 0) {
     const rp = rain.geometry.attributes.position;
@@ -1698,5 +1755,4 @@ function animate(now) {
 }
 
 requestAnimationFrame(animate);
-
 
